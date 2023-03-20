@@ -15,7 +15,7 @@ try:
         host="localhost",
         user="root",
         # passwd=os.environ.get('SQL_PASS'),  # password when using pycharm configurations
-        # passwd=os.environ['SQL_PASS'], # password after setting password in cmd
+        passwd=os.environ['SQL_PASS'], # password after setting password in cmd
         database="CryptoPrices")  # password when using cmd to run the script
 
 
