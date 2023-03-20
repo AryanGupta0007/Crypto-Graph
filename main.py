@@ -1,77 +1,71 @@
+
 import streamlit as st
-from sqlalchemy import create_engine
 import pandas as pd
+import mysql.connector as mysql
 import datetime
-from datetime import timedelta
-from sqlalchemy.orm import sessionmaker
-from store_data import ETH_prices
-from store_data import BTC_prices
-from sqlalchemy import MetaData
-from sqlalchemy import Table
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+import sys
+import os
 from streamlit import pyplot
 from matplotlib import pyplot as plt
-import time
-# database_url = "C:\\Users\\panka\\OneDrive\\Desktop\\KIDS\\Aryan\\Python_Projects\\CryptoStreamlit\\database.db"
-engine = create_engine("sqlite:///C:\\Users\\panka\\OneDrive\\Desktop\\KIDS\\Aryan\\Python_Projects\\CryptoStreamlit\\database.db")
+from streamlit import pyplot
+from datetime import timedelta
+try:
+    db = mysql.connect(
+
+        host="localhost",
+        user="root",
+        # passwd=os.environ.get('SQL_PASS'),  # password when using pycharm configurations
+        # passwd=os.environ['SQL_PASS'], # password after setting password in cmd
+        database="CryptoPrices")  # password when using cmd to run the script
+
+
+except Exception as Error:
+    print(Error)
+    sys.exit()
+crsr = db.cursor(buffered=True)
 while True:
     st.title("Crypto Graph")
-
-    current_datetime = datetime.datetime.now().strftime("%H:%M:%S %d-%m-%Y")
-        
-    current_time1 = datetime.datetime.strptime(current_datetime, "%H:%M:%S %d-%m-%Y")
-    # print(f"current time {current_time1}")
-    time1 = current_time1 - timedelta(minutes=1)
-    # print(f"1min before {time1}")
-    # time.sleep(10)    
-
+    current_datetime_str = datetime.datetime.now().strftime("%y-%m-%d %H:%M:%S")
+    current_datetime = datetime.datetime.strptime(current_datetime_str,"%y-%m-%d %H:%M:%S")
+    before_1_min = current_datetime + timedelta(minutes=-1)
+    # seconds = [x for x in range (1, 60)]
     result = []
-    current_time_object = current_time1
-    time1_object = time1
-    initial_time_string = datetime.datetime.strftime(time1_object, "%H:%M:%S %d-%m-%Y")
-    result.append(initial_time_string)
-
-    while current_time_object >= time1_object:
-        time1_object += datetime.timedelta(seconds=1)
-        time1_str = datetime.datetime.strftime(time1_object, "%H:%M:%S %d-%m-%Y")
-        result.append(time1_str)
+    for x in range(60):
+        time = before_1_min + timedelta(seconds=x)
+        time = datetime.datetime.strftime(time, "%y-%m-%d %H:%M:%S")
+        result.append(time)
+    # result = [ for x in range (len(seconds)]
     # print(result)
-    # time.sleep(20)
-    times = []
+
+    #
+    # #
+    #
     prices = []
+    times = []
     placeholder = st.empty()
     with st.empty():
         for x in range(len(result)):
-            with Session(engine) as session:
-                data = session.query(BTC_prices).filter(BTC_prices.datetime==result[x]).first()
-                # print(data)
-                # time.sleep(5)
+            crsr.execute("SELECT Price FROM BTC WHERE DateTime = %s", (result[x], ) )
 
-                if  data:
-                    date = datetime.datetime.strptime(data.datetime, "%H:%M:%S %d-%m-%Y")
-                    price = float(data.price)
-                    times.append(date)  
+            date = datetime.datetime.strptime(result[x], "%y-%m-%d %H:%M:%S")
+
+            for row in crsr:
+                for price in row:
+                    price = float(price)
                     prices.append(price)
-                    df = {"Date": times, 
-                    "Price": prices
-                    }
-                    DF = pd.DataFrame(df)
-                    DF = DF.set_index("Date")
-                    plt.title("1 min graph")
-                    plt.ylabel("Prices")
-                    plt.xlabel("Date Time")
-                    plt.plot(times, prices)
-                    st.set_option('deprecation.showPyplotGlobalUse', False)
-                    placeholder.pyplot() 
+                    times.append(date)
+            try:
+                df = {"Date": times,
+                "Price": prices
+                }
+            except:
+                pass
 
-                    # placeholder.line_chart(DF)
-                    # pyplot(fig)
-                    # plt.title("1 min graph")
-                    # plt.ylabel("Prices")
-                    # plt.xlabel("Date Time")
-                    # plt.plot(times, prices)        
-            # # print(dictionary)
-            # # time.sleep(10)
-
-    
+            DF = pd.DataFrame(df)
+            DF = DF.set_index("Date")
+            plt.title("1 min graph")
+            plt.ylabel("Prices")
+            plt.xlabel("Date Time")
+            plt.plot(times, prices)
+            st.set_option('deprecation.showPyplotGlobalUse', False)
+            placeholder.pyplot()
